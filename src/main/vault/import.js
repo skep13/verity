@@ -59,6 +59,11 @@ async function extractText(file) {
   throw new Error(`Unsupported file type ${ext || '(none)'}`);
 }
 
+/** Quote a YAML scalar, so punctuation in a value cannot break the frontmatter. */
+function yamlString(value) {
+  return `"${String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+}
+
 function sanitizeName(name) {
   return String(name).replace(/[\\/:*?"<>|#^[\]]/g, '-').replace(/\s+/g, ' ').trim().slice(0, 120) || 'Untitled';
 }
@@ -102,8 +107,10 @@ async function importFile(file, { vaultRoot, folder = 'Imported', overwrite = fa
 
     const frontmatter = [
       '---',
-      `title: ${title}`,
-      `source: ${file}`,
+      `title: ${yamlString(title)}`,
+      // Quoted because it is a filesystem path: a colon, bracket, hash or quote
+      // anywhere in it produces frontmatter Obsidian reports as a parse error.
+      `source: ${yamlString(file)}`,
       `imported: ${new Date().toISOString()}`,
       'tags: [verity, imported]',
       '---',
