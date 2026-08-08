@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self'"
+    />
+    <title>Verity</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="grain" aria-hidden="true"></div>
+
+    <header class="titlebar">
+      <div class="drag"></div>
+      <div class="brand">
+        <span class="mark" aria-hidden="true"></span>
+        <h1>Verity</h1>
+      </div>
+      <div class="titlebar-actions">
+        <button id="newChat" class="icon-btn" title="New conversation" aria-label="New conversation">
+          <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+            <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none" />
+          </svg>
+        </button>
+        <button id="settingsBtn" class="icon-btn" title="Settings" aria-label="Settings">
+          <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+            <circle cx="8" cy="8" r="2.4" stroke="currentColor" stroke-width="1.3" fill="none" />
+            <path
+              d="M8 1.5v1.6M8 12.9v1.6M14.5 8h-1.6M3.1 8H1.5M12.6 3.4l-1.1 1.1M4.5 11.5l-1.1 1.1M12.6 12.6l-1.1-1.1M4.5 4.5L3.4 3.4"
+              stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <section class="stage">
+      <canvas id="orb" width="360" height="360" aria-hidden="true"></canvas>
+      <p id="stateLabel" class="state-label">Ready</p>
+    </section>
+
+    <nav class="statusbar" id="statusbar" aria-label="System status"></nav>
+
+    <main id="messages" class="messages is-empty" role="log" aria-live="polite">
+      <div class="empty" id="emptyState">
+        <p class="empty-lede">Press Space and talk — I listen until you stop.</p>
+        <ul class="empty-hints">
+          <li>“What do you know about photosynthesis?”</li>
+          <li>“Remember my thesis is due on the 12th.”</li>
+          <li>“Research the Antikythera mechanism, save it.”</li>
+        </ul>
+      </div>
+    </main>
+
+    <footer class="composer">
+      <button id="mic" class="mic-btn" title="Start listening (Space)" aria-label="Start listening">
+        <svg viewBox="0 0 20 20" width="17" height="17" aria-hidden="true">
+          <rect x="7.4" y="2.4" width="5.2" height="9.6" rx="2.6" fill="currentColor" />
+          <path d="M4.6 9.4a5.4 5.4 0 0 0 10.8 0M10 14.8v2.8" stroke="currentColor" stroke-width="1.5"
+            stroke-linecap="round" fill="none" />
+        </svg>
+      </button>
+      <div class="field">
+        <textarea id="input" rows="1" placeholder="Ask Verity…" spellcheck="false"></textarea>
+      </div>
+      <button id="send" class="send-btn" title="Send" aria-label="Send">
+        <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true">
+          <path d="M3.2 10h13.6M11.2 4.6 16.8 10l-5.6 5.4" stroke="currentColor" stroke-width="1.6"
+            stroke-linecap="round" stroke-linejoin="round" fill="none" />
+        </svg>
+      </button>
+      <button id="stop" class="stop-btn hidden" title="Stop" aria-label="Stop">
+        <rect width="9" height="9" rx="1.5" fill="currentColor" />
+      </button>
+    </footer>
+
+    <!-- Settings ------------------------------------------------------ -->
+    <aside id="settings" class="drawer" aria-hidden="true">
+      <div class="drawer-head">
+        <h2>Settings</h2>
+        <button id="closeSettings" class="icon-btn" aria-label="Close settings">
+          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+            <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="drawer-body">
+        <section class="group">
+          <h3>Persona</h3>
+          <label class="row">
+            <span>Present as</span>
+            <select id="persona"></select>
+          </label>
+          <label class="row">
+            <span>Language</span>
+            <select id="language">
+              <option value="en">English</option>
+              <option value="ja">Japanese — 日本語</option>
+            </select>
+          </label>
+          <p class="hint" id="personaHint"></p>
+        </section>
+
+        <section class="group">
+          <h3>Model</h3>
+          <label class="row">
+            <span>Run on</span>
+            <select id="provider">
+              <option value="ollama">This Mac (Ollama)</option>
+              <option value="claude">Claude API</option>
+            </select>
+          </label>
+          <label class="row">
+            <span>Model</span>
+            <select id="model"></select>
+          </label>
+          <p class="hint" id="modelHint"></p>
+          <label class="row">
+            <span>When speaking</span>
+            <select id="voiceModel"></select>
+          </label>
+          <p class="hint">
+            A smaller model can answer spoken questions faster, while typing stays on the
+            more capable one. Both run on this Mac.
+          </p>
+          <label class="row">
+            <span>Keep in RAM for</span>
+            <select id="keepAlive">
+              <option value="0">Unload immediately</option>
+              <option value="30s">30 seconds</option>
+              <option value="2m">2 minutes</option>
+              <option value="5m">5 minutes</option>
+              <option value="-1">Until I quit Verity</option>
+            </select>
+          </label>
+          <label class="row">
+            <span>Context size</span>
+            <select id="numCtx">
+              <option value="4096">4k — leanest</option>
+              <option value="8192">8k — balanced</option>
+              <option value="16384">16k — long chats</option>
+            </select>
+          </label>
+          <p class="hint">
+            Shorter and smaller free memory for your browser, at the cost of a few seconds
+            reloading the model on your next question.
+          </p>
+        </section>
+
+        <section class="group">
+          <h3>Voice</h3>
+          <label class="row">
+            <span>Speak replies</span>
+            <input type="checkbox" id="autoSpeak" />
+          </label>
+          <label class="row">
+            <span>Listen as soon as Verity opens</span>
+            <input type="checkbox" id="autoListen" />
+          </label>
+          <label class="row">
+            <span>Wait for a wake word</span>
+            <input type="checkbox" id="wakeEnabled" />
+          </label>
+          <label class="row">
+            <span>Wake phrase</span>
+            <input type="text" id="wakePhrase" spellcheck="false" />
+          </label>
+          <p class="hint">
+            With this on, Verity ignores everything until it hears the phrase. Speech is
+            only transcribed when the microphone actually detects a voice, so a quiet room
+            costs nothing.
+          </p>
+          <label class="row">
+            <span>Voice</span>
+            <select id="voice"></select>
+          </label>
+          <label class="row">
+            <span>Rate</span>
+            <input type="range" id="rate" min="120" max="300" step="5" />
+          </label>
+          <label class="row">
+            <span>Play through</span>
+            <select id="outputDevice"></select>
+          </label>
+          <button id="testVoice" class="ghost-btn">Test voice</button>
+        </section>
+
+        <section class="group">
+          <h3>Tool permissions</h3>
+          <p class="hint">
+            <strong>Allow</strong> runs silently. <strong>Ask</strong> prompts every time.
+            <strong>Deny</strong> hides the tool from the model entirely.
+          </p>
+          <div id="permissions" class="permissions"></div>
+        </section>
+
+        <section class="group">
+          <h3>Morning brief</h3>
+          <label class="row">
+            <span>Read me a brief each morning</span>
+            <input type="checkbox" id="briefEnabled" />
+          </label>
+          <label class="row">
+            <span>At</span>
+            <input type="text" id="briefTime" placeholder="08:00" spellcheck="false" />
+          </label>
+          <label class="row">
+            <span>Start Verity at login</span>
+            <input type="checkbox" id="loginItem" />
+          </label>
+          <label class="row">
+            <span>Your location</span>
+            <input type="text" id="homeLocation" placeholder="e.g. Edinburgh" spellcheck="false" />
+          </label>
+          <p class="hint">
+            Your calendar, outstanding reminders and the weather, in a few spoken sentences.
+            It only fires while Verity is running.
+          </p>
+          <button id="testBrief" class="ghost-btn">Read the brief now</button>
+        </section>
+
+        <section class="group">
+          <h3>Obsidian</h3>
+          <label class="row">
+            <span>Save conversations to the vault</span>
+            <input type="checkbox" id="saveConversations" />
+          </label>
+          <label class="row stacked">
+            <span>Vault path</span>
+            <input type="text" id="vaultPath" spellcheck="false" />
+          </label>
+          <label class="row stacked">
+            <span>Notes folder</span>
+            <input type="text" id="vaultFolder" spellcheck="false" />
+          </label>
+          <button id="revealVault" class="ghost-btn">Open vault in Finder</button>
+        </section>
+
+        <section class="group">
+          <h3>Offline Wikipedia</h3>
+          <div id="zimStatus" class="zim-status"></div>
+        </section>
+
+        <section class="group">
+          <h3>Claude API key</h3>
+          <p class="hint">Optional. Stored in your macOS Keychain, never in a file you can read.</p>
+          <label class="row stacked">
+            <span>Key</span>
+            <input type="password" id="claudeKey" placeholder="sk-ant-…" spellcheck="false" />
+          </label>
+          <div class="btn-row">
+            <button id="saveKey" class="ghost-btn">Save key</button>
+            <button id="clearKey" class="ghost-btn danger">Remove</button>
+          </div>
+        </section>
+      </div>
+    </aside>
+    <div id="scrim" class="scrim" aria-hidden="true"></div>
+
+    <!-- Permission prompt --------------------------------------------- -->
+    <div id="approval" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="approvalTitle">
+      <div class="modal-card">
+        <p class="modal-kicker">Verity wants to</p>
+        <h2 id="approvalTitle" class="modal-title"></h2>
+        <pre id="approvalArgs" class="modal-args"></pre>
+        <label class="remember">
+          <input type="checkbox" id="approvalRemember" />
+          <span>Always allow this tool</span>
+        </label>
+        <div class="modal-actions">
+          <button id="approvalDeny" class="ghost-btn">Not now</button>
+          <button id="approvalAllow" class="primary-btn">Allow</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="orb.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

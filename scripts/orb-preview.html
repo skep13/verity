@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Orb preview</title>
+<style>
+  body { margin:0; background:#0a0b0d; display:grid; place-items:center; height:100vh;
+         font-family:ui-monospace,Menlo,monospace; }
+  .grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+  .cell { display:grid; place-items:center; }
+  canvas { width:200px; height:200px; }
+  p { color:#8b8a86; font-size:10px; letter-spacing:.2em; text-transform:uppercase; margin:0 0 4px; }
+</style>
+</head>
+<body>
+<div class="grid">
+  <div class="cell"><p>idle</p><canvas id="c0"></canvas></div>
+  <div class="cell"><p>listening</p><canvas id="c1"></canvas></div>
+  <div class="cell"><p>thinking</p><canvas id="c2"></canvas></div>
+  <div class="cell"><p>speaking</p><canvas id="c3"></canvas></div>
+</div>
+<script src="../src/renderer/orb.js"></script>
+<script>
+  // Feed the audio-driven states a synthetic voice-like spectrum so the preview
+  // shows what they actually look like in use.
+  function fakeSpectrum(n, t, energy) {
+    const d = new Uint8Array(n);
+    for (let i = 0; i < n; i++) {
+      const f = i / n;
+      const formant = Math.exp(-Math.pow((f - 0.06) * 14, 2)) + 0.6 * Math.exp(-Math.pow((f - 0.16) * 11, 2));
+      const wobble = 0.55 + 0.45 * Math.sin(t * 3.1 + i * 0.35);
+      d[i] = Math.max(0, Math.min(255, formant * wobble * 255 * energy));
+    }
+    return d;
+  }
+  const states = ['idle','listening','thinking','speaking'];
+  const orbs = states.map((s,i) => {
+    const o = new window.VerityOrb(document.getElementById('c'+i));
+    o.setState(s); o.start(); return o;
+  });
+  let t = 0;
+  setInterval(() => {
+    t += 0.05;
+    const energy = 0.45 + 0.55 * Math.abs(Math.sin(t * 0.8));
+    orbs[1].setSpectrum(fakeSpectrum(256, t, energy)); orbs[1].setLevel(energy);
+    orbs[3].setSpectrum(fakeSpectrum(256, t * 1.3, energy)); orbs[3].setLevel(energy);
+  }, 50);
+</script>
+</body>
+</html>

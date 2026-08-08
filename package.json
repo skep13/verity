@@ -1,0 +1,59 @@
+{
+  "name": "verity",
+  "productName": "Verity",
+  "version": "1.0.0",
+  "description": "A local-first desktop AI assistant with voice, tools, Obsidian memory and offline Wikipedia.",
+  "main": "src/main/index.js",
+  "author": "Jacob Matthews",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "npm run icon && electron-builder --mac --arm64",
+    "postbuild": "xattr -cr dist/mac-arm64/Verity.app && codesign --force --deep --sign - dist/mac-arm64/Verity.app",
+    "icon": "node scripts/make-icon.js",
+    "check-wikipedia": "node scripts/check-wikipedia.js",
+    "smoke": "electron scripts/smoke.js",
+    "preview-orb": "electron scripts/preview-orb.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "devDependencies": {
+    "electron": "^43.3.0",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "app.verity.desktop",
+    "productName": "Verity",
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "!models/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "models",
+        "to": "models",
+        "filter": ["**/*.bin"]
+      }
+    ],
+    "mac": {
+      "target": [{ "target": "dir", "arch": ["arm64"] }],
+      "category": "public.app-category.productivity",
+      "icon": "assets/icon.icns",
+      "darkModeSupport": true,
+      "identity": null,
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "Verity needs the microphone so you can speak to it.",
+        "NSAppleEventsUsageDescription": "Verity uses Calendar and Reminders to read your schedule and add events you ask for.",
+        "NSCalendarsUsageDescription": "Verity reads your calendar and adds events you ask for.",
+        "NSRemindersUsageDescription": "Verity adds reminders you ask for.",
+        "LSMinimumSystemVersion": "12.0"
+      }
+    }
+  }
+}

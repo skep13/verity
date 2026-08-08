@@ -1,0 +1,31 @@
+# Dependencies and build output
+node_modules/
+dist/
+
+# Speech and test models — hundreds of megabytes, and downloadable.
+# See README for the commands that fetch them.
+models/
+!models/.gitkeep
+
+# Generated at build time from scripts/make-icon.js
+assets/icon.png
+assets/icon.icns
+assets/icon.iconset/
+
+# Wikipedia archives, wherever they land
+*.zim
+
+# macOS
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Logs and local scratch
+*.log
+npm-debug.log*
