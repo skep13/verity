@@ -106,6 +106,21 @@ function systemPrompt({ spoken }) {
     );
   }
 
+  // Tell the model what the vault actually holds. Without this it treats the
+  // vault as personal notes only and goes to the web for anything technical,
+  // even when the exact manual is sitting in it.
+  const outline = obsidian.outline();
+  if (outline) {
+    lines.push(
+      '',
+      '## What is in the vault',
+      outline,
+      '',
+      '- Search the vault BEFORE the web for anything about a command, tool, flag or how to do something on this machine. The notes above are the real manuals from this Mac, so they are correct for the versions actually installed — the web is not.',
+      '- If a search returns a passage that answers the question, answer from it and say which note it came from. Do not add commands or flags that were not in it.'
+    );
+  }
+
   lines.push('', '## What is available right now');
 
   lines.push(
@@ -159,6 +174,51 @@ function systemPrompt({ spoken }) {
   return lines.join('\n');
 }
 
+const RETRIEVE_MAX_PASSAGES = 3;
+const RETRIEVE_MIN_RELEVANCE = 0.45;
+const RETRIEVE_MAX_CHARS = 2400;
+
+/**
+ * Passages from the vault that look relevant to this question, formatted for
+ * the system prompt. Returns '' when nothing is close enough — an unrelated
+ * passage is worse than none, because the model will try to use it.
+ */
+async function retrieveContext(question) {
+  try {
+    const hits = await require('./vault').search(question, RETRIEVE_MAX_PASSAGES);
+    if (!hits || !hits.length) return '';
+
+    const useful = hits.filter((h) => h.relevance >= RETRIEVE_MIN_RELEVANCE);
+    if (!useful.length) return '';
+
+    let body = '';
+    for (const hit of useful) {
+      const block = `### ${hit.title}  (${hit.path})\n\n${hit.excerpt}\n\n`;
+      if (body.length + block.length > RETRIEVE_MAX_CHARS) break;
+      body += block;
+    }
+    if (!body) return '';
+
+    return [
+      '',
+      '',
+      '## Retrieved from the vault for this question',
+      "These passages were found in the user's own notes and may answer it. They are the",
+      'authoritative source for anything about this machine — the tool manuals here are the',
+      'versions actually installed.',
+      '',
+      '- If they answer the question, answer from them and name the note.',
+      '- Do not add commands, flags or tools that do not appear here or that you cannot verify.',
+      '- If they are not relevant, ignore them and say so rather than forcing them to fit.',
+      '',
+      body.trim(),
+    ].join('\n');
+  } catch {
+    // Retrieval is an enhancement; a failed embedding must not fail the turn.
+    return '';
+  }
+}
+
 /**
  * Run one user turn to completion.
  *
@@ -178,8 +238,18 @@ async function run({
   const cfg = load();
   const { provider, model } = resolveRoute(spoken, cfg);
 
+  // Retrieve from the vault before asking, rather than hoping the model decides
+  // to search. Told the vault held 56 tool manuals, a 3B model still answered
+  // "how do I list deleted files in a disk image" from memory — inventing a tool
+  // that is not installed and an apt-get command that does not exist on macOS —
+  // while the `fls` manual sat one search away. Choosing to look things up is
+  // exactly what small models are worst at, so the choice is removed.
+  //
+  // One embedding call, a few hundred tokens. Cheap next to being wrong.
+  const retrieved = await retrieveContext(userMessage);
+
   const messages = [
-    { role: 'system', content: systemPrompt({ spoken }) },
+    { role: 'system', content: systemPrompt({ spoken }) + retrieved },
     ...history,
     { role: 'user', content: userMessage },
   ];

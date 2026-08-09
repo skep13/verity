@@ -390,6 +390,47 @@ function readProfile(maxChars = 2200) {
   }
 }
 
+/**
+ * A compact table of contents for the vault, for the system prompt.
+ *
+ * Without this the model has no idea what it is holding: asked how to list
+ * deleted files in a disk image it searched the web and invented a tool, while
+ * the actual manual for `fls` sat in the vault and was retrievable in one hop.
+ * Knowing the shelf exists is what makes it reach for it.
+ */
+function outline({ maxChars = 700, samplesPerFolder = 8 } = {}) {
+  try {
+    const root = vaultRoot();
+    const cfg = load();
+    const byFolder = new Map();
+
+    for (const file of walk(root)) {
+      const rel = path.relative(root, file);
+      const dir = path.dirname(rel);
+      const folder = dir === '.' ? '(top level)' : dir.split(path.sep)[0];
+      if (!byFolder.has(folder)) byFolder.set(folder, []);
+      byFolder.get(folder).push(path.basename(rel, '.md'));
+    }
+    if (!byFolder.size) return null;
+
+    // Biggest first: that is where the useful bulk is.
+    const folders = [...byFolder.entries()].sort((a, b) => b[1].length - a[1].length);
+    const lines = [];
+    for (const [folder, titles] of folders) {
+      if (folder === cfg.vaultFolder) continue; // the profile is already inlined
+      const sample = titles.slice(0, samplesPerFolder).join(', ');
+      const more = titles.length > samplesPerFolder ? `, and ${titles.length - samplesPerFolder} more` : '';
+      lines.push(`- **${folder}** (${titles.length}): ${sample}${more}`);
+    }
+
+    let out = lines.join('\n');
+    if (out.length > maxChars) out = `${out.slice(0, maxChars).replace(/,[^,]*$/, '')}…`;
+    return out || null;
+  } catch {
+    return null;
+  }
+}
+
 function profilePath() {
   const cfg = load();
   return path.join(cfg.vaultFolder, `${cfg.profileNote || 'Profile'}.md`);
@@ -416,5 +457,6 @@ module.exports = {
   listMarkdownFiles,
   readProfile,
   profilePath,
+  outline,
   linkRelatedNotes,
 };
