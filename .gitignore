@@ -2,6 +2,9 @@
 node_modules/
 dist/
 
+# Third-party engines installed locally — gigabytes, and downloadable.
+vendor/
+
 # Speech and test models — hundreds of megabytes, and downloadable.
 # See README for the commands that fetch them.
 # Ignore the contents, not the directory: git cannot re-include a file whose

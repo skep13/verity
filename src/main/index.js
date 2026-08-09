@@ -35,6 +35,7 @@ const personas = require('./personas');
 const brief = require('./brief');
 const stt = require('./speech/stt');
 const tts = require('./speech/tts');
+const voicevox = require('./speech/voicevox');
 
 let mainWindow = null;
 let currentTurn = null; // AbortController for the in-flight reply
@@ -329,12 +330,34 @@ ipcMain.handle('tts:speak', async (_e, { text, voice, rate }) => {
     // language live in config, and the renderer should not have to know how they
     // combine. An explicit voice from Settings still wins.
     const cfg = config.load();
-    const preset = personas.speechFor(cfg.persona, cfg.language || 'en');
-    const chosenVoice = voice || cfg.voice.name || preset.voice;
+    const language = cfg.language || 'en';
+    const preset = personas.speechFor(cfg.persona, language);
+    const speakingRate = rate || cfg.voice.rate;
+
+    // VOICEVOX speaks Japanese only, and badly mangles English, so it is used
+    // only when the language is Japanese and the local engine is actually up.
+    // Anything else falls through to the macOS voices.
+    if (cfg.voicevoxEnabled && language === 'ja' && (await voicevox.isRunning())) {
+      try {
+        const wav = await voicevox.synthesise({
+          text: tts.speakable(text),
+          speaker: cfg.voicevoxSpeaker,
+          rate: speakingRate,
+          pitch: preset.pitch,
+        });
+        if (wav) {
+          return { ok: true, audio: wav.buffer.slice(wav.byteOffset, wav.byteOffset + wav.byteLength) };
+        }
+      } catch (err) {
+        // A failed engine must not mean silence; fall through to `say`.
+        console.log(`[voicevox] ${err.message} — falling back to the system voice`);
+      }
+    }
+
     const file = await tts.synthesise({
       text,
-      voice: chosenVoice,
-      rate: rate || cfg.voice.rate,
+      voice: voice || cfg.voice.name || preset.voice,
+      rate: speakingRate,
       pitch: preset.pitch,
     });
     if (!file) return { ok: true, empty: true };
@@ -345,6 +368,14 @@ ipcMain.handle('tts:speak', async (_e, { text, voice, rate }) => {
     return { ok: false, error: err.message };
   }
 });
+
+ipcMain.handle('voicevox:status', async () => ({
+  running: await voicevox.isRunning(),
+  version: await voicevox.version(),
+  voices: await voicevox.listVoices(),
+  host: config.load().voicevoxHost,
+  termsUrl: voicevox.TERMS_URL,
+}));
 
 /* ------------------------------------------------------------------ */
 /* Status                                                              */

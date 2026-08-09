@@ -51,6 +51,9 @@ const el = {
   voice: $('voice'),
   rate: $('rate'),
   outputDevice: $('outputDevice'),
+  voicevoxRow: $('voicevoxRow'),
+  voicevoxSpeaker: $('voicevoxSpeaker'),
+  voicevoxHint: $('voicevoxHint'),
   testVoice: $('testVoice'),
   permissions: $('permissions'),
   vaultPath: $('vaultPath'),
@@ -811,6 +814,39 @@ async function loadVoices() {
   }
 }
 
+/**
+ * VOICEVOX is only relevant when the language is Japanese, so the control stays
+ * hidden otherwise rather than offering a voice that would mangle English.
+ */
+async function loadVoicevox() {
+  const japanese = (config.language || 'en') === 'ja';
+  const status = await window.verity.speech.voicevoxStatus();
+
+  el.voicevoxRow.hidden = !japanese || !status.running;
+
+  if (!japanese) {
+    el.voicevoxHint.textContent = '';
+    return;
+  }
+  if (!status.running) {
+    el.voicevoxHint.textContent =
+      'VOICEVOX is not running. Start it and reopen Settings to use its voices; the macOS voices are used until then.';
+    return;
+  }
+
+  el.voicevoxSpeaker.replaceChildren();
+  for (const v of status.voices) {
+    const opt = document.createElement('option');
+    opt.value = String(v.id);
+    opt.textContent = v.name;
+    el.voicevoxSpeaker.append(opt);
+  }
+  if (status.voices.some((v) => String(v.id) === String(config.voicevoxSpeaker))) {
+    el.voicevoxSpeaker.value = String(config.voicevoxSpeaker);
+  }
+  el.voicevoxHint.innerHTML = `VOICEVOX ${escapeHtml(status.version || '')} is running locally. Each character has its own usage terms — see <code>${escapeHtml(status.termsUrl)}</code>.`;
+}
+
 async function loadOutputDevices() {
   let devices = [];
   try {
@@ -927,6 +963,7 @@ function openSettings(open) {
   if (open) {
     loadModels();
     loadOutputDevices();
+    loadVoicevox();
     refreshStatus();
   }
 }
@@ -1006,6 +1043,7 @@ el.language.addEventListener('change', async () => {
   config = await window.verity.config.set({ language: el.language.value });
   applyPersona(config.persona || 'verity');
   await adoptPersonaVoice();
+  await loadVoicevox();
   // Switching language changes the speech recognition model, so surface it
   // immediately rather than at the next thing the user says.
   refreshStatus();
@@ -1113,6 +1151,10 @@ el.testBrief.addEventListener('click', async () => {
 
 el.saveConversations.addEventListener('change', async () => {
   config = await window.verity.config.set({ saveConversations: el.saveConversations.checked });
+});
+
+el.voicevoxSpeaker.addEventListener('change', async () => {
+  config = await window.verity.config.set({ voicevoxSpeaker: Number(el.voicevoxSpeaker.value) });
 });
 
 el.outputDevice.addEventListener('change', async () => {

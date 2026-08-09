@@ -132,6 +132,12 @@ const DEFAULTS = {
   // Changes the name, palette, voice pitch and tone. Never the honesty rules.
   persona: 'verity',
 
+  // VOICEVOX: a local Japanese speech engine, used when it is running and the
+  // language is Japanese. Falls back to the macOS voices otherwise.
+  voicevoxHost: 'http://127.0.0.1:50021',
+  voicevoxEnabled: true,
+  voicevoxSpeaker: 1,
+
   // Which language to listen in and reply in. Switching this changes the speech
   // recognition model as well: the English-only whisper model cannot transcribe
   // Japanese, and would return confident nonsense rather than failing.

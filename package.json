@@ -18,6 +18,7 @@
     "icon": "node scripts/make-icon.js",
     "check-wikipedia": "node scripts/check-wikipedia.js",
     "smoke": "electron scripts/smoke.js",
+    "voicevox": "vendor/macos-arm64/run --host 127.0.0.1 --port 50021",
     "preview-orb": "electron scripts/preview-orb.js",
     "test": "node --test tests/*.test.js"
   },

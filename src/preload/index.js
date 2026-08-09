@@ -46,6 +46,7 @@ contextBridge.exposeInMainWorld('verity', {
     available: () => ipcRenderer.invoke('stt:available'),
     voices: () => ipcRenderer.invoke('tts:voices'),
     speak: (text, voice, rate) => ipcRenderer.invoke('tts:speak', { text, voice, rate }),
+    voicevoxStatus: () => ipcRenderer.invoke('voicevox:status'),
   },
 
   status: {

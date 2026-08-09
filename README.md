@@ -361,6 +361,46 @@ After rebuilding, reinstall with:
 rm -rf /Applications/Verity.app && cp -R dist/mac-arm64/Verity.app /Applications/
 ```
 
+## Better Japanese speech: VOICEVOX
+
+The macOS voices are serviceable in English and poor in Japanese.
+[VOICEVOX](https://voicevox.hiroshiba.jp/) is a free Japanese speech engine that
+runs entirely locally and exposes an HTTP API — no account, no network, which is
+why it suits this project.
+
+Download the engine for your architecture from the
+[releases page](https://github.com/VOICEVOX/voicevox_engine/releases) — for Apple
+silicon that is `voicevox_engine-macos-arm64-*.7z.001`, about 1.8 GB:
+
+```bash
+brew install p7zip
+mkdir -p vendor && cd vendor
+curl -L -O https://github.com/VOICEVOX/voicevox_engine/releases/download/0.25.2/voicevox_engine-macos-arm64-0.25.2.7z.001
+7z x voicevox_engine-macos-arm64-0.25.2.7z.001
+```
+
+Then start it whenever you want Japanese speech:
+
+```bash
+npm run voicevox
+```
+
+Verity uses it automatically when it is running **and** the language is set to
+Japanese, and picks the character voice in Settings › Voice. If the engine is not
+running it falls back to the macOS voices rather than failing. It is never used
+for English — given English text it reads the letters.
+
+Two things worth knowing before you rely on it:
+
+- **It is roughly realtime on CPU.** Measured on an M2: about 1.0–1.2× — a four
+  second reply takes about four seconds to synthesise, on top of the time the
+  model already took to think. It sounds far better than `say` and it is
+  noticeably slower to start speaking.
+- **Each character voice has its own usage terms.** Most are free to use with
+  credit, but they differ per character. Read
+  [the terms](https://voicevox.hiroshiba.jp/term/) before publishing anything
+  made with them.
+
 ## Licence and attribution
 
 The code is MIT — see [LICENSE](LICENSE).
