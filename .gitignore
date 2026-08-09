@@ -4,7 +4,10 @@ dist/
 
 # Speech and test models — hundreds of megabytes, and downloadable.
 # See README for the commands that fetch them.
-models/
+# Ignore the contents, not the directory: git cannot re-include a file whose
+# parent directory is excluded, so "models/" plus a negation silently loses
+# .gitkeep and the folder is missing from a fresh clone.
+models/*
 !models/.gitkeep
 
 # Generated at build time from scripts/make-icon.js

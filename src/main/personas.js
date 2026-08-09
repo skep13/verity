@@ -66,10 +66,15 @@ const PERSONAS = {
     ].join('\n'),
     // A voice per language rather than one transliterated into the other: Kyoko
     // reading English is unintelligible, and an English voice reading Japanese
-    // is worse. Pitch is raised in both.
+    // is worse.
+    //
+    // Pitch is `say`'s pbas, measured on Samantha: 40 -> 147 Hz, 45 -> 204,
+    // 50 -> 251, 55 -> 311, 62 -> 394. Her own baseline is about 197 Hz, so 62
+    // was a full octave up and squeaked. 50 lifts it noticeably while staying
+    // in the range of an actual voice.
     speech: {
-      en: { voice: 'Samantha', pitch: 62 },
-      ja: { voice: 'Kyoko', pitch: 58 },
+      en: { voice: 'Samantha', pitch: 50 },
+      ja: { voice: 'Kyoko', pitch: 50 },
     },
     theme: {
       '--amber': '#39c5bb',
